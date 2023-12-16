@@ -126,7 +126,6 @@ main = do
     -- print $ length games
     let sols = parMap rpar (solve . initPuzzle) games
     -- Print each solution using the boards function
-    return ()
     mapM_ (print . boards) sols
     
 
