@@ -2,11 +2,11 @@ module Main (main) where
 import Data.Maybe (mapMaybe, fromMaybe)
 import Data.Vector (Vector, (!), (//))
 import Data.List.Split (splitOn)
-import Data.Text (replace, pack, unpack)
 import qualified Data.PQueue.Prio.Min as PQ
 import qualified Data.Vector as V
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
+import Control.Parallel.Strategies (parMap, rpar, rseq, rdeepseq)
 
 type Board = Vector Int
 -- type Board = [[Int]]
@@ -104,38 +104,31 @@ boards p = map V.toList (reverse $ brds p)
             Just r  -> board q : brds r
 
 toBoard :: String -> [Int]
-toBoard s = concatMap (map read) ws'
-    where 
-        ws = map words (lines s)
-        ws' = tail ws
+toBoard input = toIntBoard (words <$> (drop 1 . clearInput . lines $ input))
+
+clearInput :: [String] -> [String]
+clearInput xs = filter (/="") $ map (head . splitOn "#") xs
+
+toIntBoard :: [[String]] -> [Int]
+toIntBoard = concatMap (map read)
 
 checkArgs :: [String] -> IO [String]
 checkArgs a = if null a then putStrLn "Usage: stack exec nparzzle-exe <file>" >> exitSuccess else pure a
-
--- main :: IO ()
--- main = do
---     args <- checkArgs =<< getArgs
---     putStrLn $ "Solving " ++ head args
---     content <- readFile $ head args
---     let game = toBoard content
---     putStrLn $ "Game: " ++ show game
---     let p = solve . initPuzzle $ game
---     print (boards p)
 
 main :: IO ()
 main = do
     args <- checkArgs =<< getArgs
     txt <- readFile $ head args
-    let allBoards = splitOn "#" txt
-        games = map toBoard allBoards
-    print allBoards
-    print games
-    print $ length games
-    let sols = map (solve . initPuzzle) games
+    let gameList = splitOn "#" txt
+        games = map toBoard gameList
+    -- print gameList
+    -- print games
+    -- print $ length games
+    let sols = parMap rpar (solve . initPuzzle) games
     -- Print each solution using the boards function
+    return ()
     mapM_ (print . boards) sols
     
-
 
 
 
