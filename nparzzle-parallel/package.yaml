@@ -21,6 +21,12 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- pqueue >= 1.5.0.0
+- split >= 0.2
+- text >= 2.0
+- vector >= 0.13.1.0
+- parallel >= 3.2.2.0
+- deepseq >= 1.4.8.1
 
 ghc-options:
 - -Wall

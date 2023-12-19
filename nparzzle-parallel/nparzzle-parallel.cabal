@@ -35,6 +35,12 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , deepseq >=1.4.8.1
+    , parallel >=3.2.2.0
+    , pqueue >=1.5.0.0
+    , split >=0.2
+    , text >=2.0
+    , vector >=0.13.1.0
   default-language: Haskell2010
 
 executable nparzzle-parallel-exe
@@ -48,7 +54,13 @@ executable nparzzle-parallel-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , deepseq >=1.4.8.1
     , nparzzle-parallel
+    , parallel >=3.2.2.0
+    , pqueue >=1.5.0.0
+    , split >=0.2
+    , text >=2.0
+    , vector >=0.13.1.0
   default-language: Haskell2010
 
 test-suite nparzzle-parallel-test
@@ -63,5 +75,11 @@ test-suite nparzzle-parallel-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , deepseq >=1.4.8.1
     , nparzzle-parallel
+    , parallel >=3.2.2.0
+    , pqueue >=1.5.0.0
+    , split >=0.2
+    , text >=2.0
+    , vector >=0.13.1.0
   default-language: Haskell2010
