@@ -11,7 +11,6 @@ import Control.Parallel (par, pseq)
 import Control.DeepSeq (NFData, rnf)
 
 type Board = Vector Int
--- type Board = [[Int]]
 data Direction = UP | DOWN | LEFT | RIGHT deriving Eq
 instance NFData Direction where
     rnf dir = dir `seq` ()
@@ -36,26 +35,22 @@ initPuzzle xs = Puzzle b d n z 0 Nothing
         d = totalDist b n
         z = fromMaybe (error "Could not find zero tile") (V.elemIndex 0 b)
 
--- Convert matrix indices to array indices
 matrix2array :: Int -> Int -> Int -> Int
 matrix2array n row col = n * row + col
 
--- Convert array indices to matrix indices
 array2matrix :: Int -> Int -> (Int, Int)
 array2matrix n i = (i `div` n, i `mod` n)
 
--- Returns dimension of a board
 dimension :: Board -> Int
 dimension = round . sqrt . fromIntegral . V.length
 
--- Manhattan distance
+-- manhattan distance: vert + horiz lengths
 manhattan :: Int -> Int -> Int -> Int  -> Int
 manhattan v n i j = if v == 0 then 0 else rowDist + colDist
     where
         rowDist = abs (i - ((v-1) `div` n))
         colDist = abs (j - ((v-1) `mod` n))
 
--- Applies heuristic to all tiles
 totalDist :: Board -> Int -> Int
 -- KIMBO par here
 -- totalDist b n = sum [manhattan (b ! matrix2array n i j) n i j | i <- [0..n-1], j <- [0..n-1]]
@@ -68,7 +63,6 @@ totalDist b n = sum $ parMap rdeepseq (\(i, j) -> manhattan (b ! matrix2array n 
         -- O(N^2) time can that be parallelized? 
             -- how to keep track of indices across threads?
 
--- Swap tiles
 swap :: Puzzle -> Int -> Int -> Puzzle
 swap p i j = p { board = b
                  , dist = totalDist b n
@@ -81,7 +75,6 @@ swap p i j = p { board = b
         prev = board p
         n = dim p
 
--- Move tile after checking valid move
 move :: Puzzle -> Direction -> Maybe Puzzle
 move p dir = case dir of
     UP -> if i <= 0   then Nothing else Just $ swap p (i-1) j
@@ -95,7 +88,6 @@ move p dir = case dir of
 parMapMaybe :: NFData b => (a -> Maybe b) -> [a] -> [b]
 parMapMaybe f xs = runEval $ parList rdeepseq (mapMaybe f xs)
 
--- Get all possible child node states (neighbors)
 neighbors :: Puzzle -> [Puzzle]
 -- KIMBO par here
 -- neighbors p = mapMaybe (move p) [UP, DOWN, LEFT, RIGHT]
@@ -124,7 +116,6 @@ boards p = map V.toList (reverse $ brds p)
             Nothing -> [board q]
             Just r  -> board q : brds r
 
--- Calculate number of steps in solution
 steps :: Puzzle -> Int
 steps p = length (boards p) - 1
 
@@ -150,6 +141,5 @@ main = do
     -- print games
     -- print $ length games
     let sols = map (solve . initPuzzle) games
-    -- Print each solution using the boards function
     -- mapM_ (print . boards) sols
     mapM_ (print . steps) sols
