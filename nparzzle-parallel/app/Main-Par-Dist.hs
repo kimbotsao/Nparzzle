@@ -6,7 +6,7 @@ import qualified Data.PQueue.Prio.Min as PQ
 import qualified Data.Vector as V
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
-import Control.Parallel.Strategies (parList,rseq,using)
+import Control.Parallel.Strategies (parMap,rpar)
 
 type Board = Vector Int
 -- type Board = [[Int]]
@@ -19,7 +19,7 @@ data Puzzle = Puzzle
     , zero     :: Int
     , moves     :: Int
     , previous  :: Maybe Puzzle
-    } deriving (Show, Eq, Ord)
+    } deriving (Show, Eq, Ord)  
 
 initPuzzle :: [Int] -> Puzzle
 initPuzzle xs = Puzzle b d n z 0 Nothing
@@ -50,7 +50,8 @@ manhattan v n i j = if v == 0 then 0 else rowDist + colDist
 
 -- Applies heuristic to all tiles
 totalDist :: Board -> Int -> Int
-totalDist b n = sum [manhattan (b ! matrix2array n i j) n i j | i <- [0..n-1], j <- [0..n-1]]
+totalDist b n = sum $ parMap rpar (\i -> sum [manhattan (b ! matrix2array n i j) n i j | j <- [0..n-1]]) [0..n-1]
+
 
 -- Swap tiles
 swap :: Puzzle -> Int -> Int -> Puzzle
@@ -77,12 +78,8 @@ move p dir = case dir of
         n = dim p
 
 -- Get all possible child node states (neighbors)
-
-parMapMaybe :: (a -> Maybe b) -> [a] -> [b]
-parMapMaybe f xs = (mapMaybe f xs) `using` (parList rseq)
-
 neighbors :: Puzzle -> [Puzzle]
-neighbors p = parMapMaybe (move p) [UP, DOWN, LEFT, RIGHT]
+neighbors p = mapMaybe (move p) [UP, DOWN, LEFT, RIGHT]
 
 solve :: Puzzle -> Puzzle
 solve p = go (PQ.fromList [(dist p, p)])
@@ -132,3 +129,6 @@ main = do
     -- Print each solution using the boards function
     mapM_ (print . boards) sols
     
+
+
+
