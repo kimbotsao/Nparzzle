@@ -4,11 +4,11 @@ cabal-version: 2.2
 --
 -- see: https://github.com/sol/hpack
 
-name:           nparzzle-parallel
+name:           nparzzle-parv2
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/nparzzle-parallel#readme>
-homepage:       https://github.com/githubuser/nparzzle-parallel#readme
-bug-reports:    https://github.com/githubuser/nparzzle-parallel/issues
+description:    Please see the README on GitHub at <https://github.com/githubuser/nparzzle-parv2#readme>
+homepage:       https://github.com/githubuser/nparzzle-parv2#readme
+bug-reports:    https://github.com/githubuser/nparzzle-parv2/issues
 author:         Author name here
 maintainer:     example@example.com
 copyright:      2023 Author name here
@@ -21,15 +21,15 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/nparzzle-parallel
+  location: https://github.com/githubuser/nparzzle-parv2
 
 library
   exposed-modules:
       Lib
   other-modules:
-      Paths_nparzzle_parallel
+      Paths_nparzzle_parv2
   autogen-modules:
-      Paths_nparzzle_parallel
+      Paths_nparzzle_parv2
   hs-source-dirs:
       src
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
@@ -43,19 +43,19 @@ library
     , vector >=0.13.1.0
   default-language: Haskell2010
 
-executable nparzzle-parallel-exe
+executable nparzzle-parv2-exe
   main-is: Main.hs
   other-modules:
-      Paths_nparzzle_parallel
+      Paths_nparzzle_parv2
   autogen-modules:
-      Paths_nparzzle_parallel
+      Paths_nparzzle_parv2
   hs-source-dirs:
       app
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , deepseq >=1.4.8.1
-    , nparzzle-parallel
+    , nparzzle-parv2
     , parallel >=3.2.2.0
     , pqueue >=1.5.0.0
     , split >=0.2
@@ -63,20 +63,20 @@ executable nparzzle-parallel-exe
     , vector >=0.13.1.0
   default-language: Haskell2010
 
-test-suite nparzzle-parallel-test
+test-suite nparzzle-parv2-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      Paths_nparzzle_parallel
+      Paths_nparzzle_parv2
   autogen-modules:
-      Paths_nparzzle_parallel
+      Paths_nparzzle_parv2
   hs-source-dirs:
       test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , deepseq >=1.4.8.1
-    , nparzzle-parallel
+    , nparzzle-parv2
     , parallel >=3.2.2.0
     , pqueue >=1.5.0.0
     , split >=0.2
