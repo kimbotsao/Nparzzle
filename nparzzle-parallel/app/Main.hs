@@ -57,11 +57,6 @@ totalDist :: Board -> Int -> Int
 totalDist b n = sum $ parMap rdeepseq (\(i, j) -> manhattan (b ! matrix2array n i j) n i j) indices
   where
     indices = [(i, j) | i <- [0..n-1], j <- [0..n-1]]
--- manhattan (b ! matrix2array n i j) n i j | i <- [0..n-1], j <- [0..n-1]
--- (b ! matrix2array n i j) 
-    -- | i <- [0..n-1], j <- [0..n-1]
-        -- O(N^2) time can that be parallelized? 
-            -- how to keep track of indices across threads?
 
 swap :: Puzzle -> Int -> Int -> Puzzle
 swap p i j = p { board = b
@@ -93,6 +88,8 @@ neighbors :: Puzzle -> [Puzzle]
 -- neighbors p = mapMaybe (move p) [UP, DOWN, LEFT, RIGHT]
 neighbors p = parMapMaybe (move p) [UP, DOWN, LEFT, RIGHT]
 
+
+-- try to implement pruning
 solve :: Puzzle -> Puzzle
 solve p = go (PQ.fromList [(dist p, p)])
     where
