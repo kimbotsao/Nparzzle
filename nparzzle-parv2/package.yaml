@@ -1,0 +1,65 @@
+name:                nparzzle-parallel
+version:             0.1.0.0
+github:              "githubuser/nparzzle-parallel"
+license:             BSD-3-Clause
+author:              "Author name here"
+maintainer:          "example@example.com"
+copyright:           "2023 Author name here"
+
+extra-source-files:
+- README.md
+- CHANGELOG.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/nparzzle-parallel#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- pqueue >= 1.5.0.0
+- split >= 0.2
+- text >= 2.0
+- vector >= 0.13.1.0
+- parallel >= 3.2.2.0
+- deepseq >= 1.4.8.1
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+
+library:
+  source-dirs: src
+
+executables:
+  nparzzle-parallel-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - nparzzle-parallel
+
+tests:
+  nparzzle-parallel-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - nparzzle-parallel
