@@ -6,9 +6,13 @@ import qualified Data.PQueue.Prio.Min as PQ
 import qualified Data.Vector as V
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
+import Control.Monad ( forM, void )
 import Control.Parallel.Strategies
 import Control.Parallel (par, pseq)
 import Control.DeepSeq (NFData, rnf)
+import GHC.Conc (pseq)
+import Control.Concurrent ( newEmptyMVar, newMVar, forkIO, tryPutMVar, takeMVar, putMVar, readMVar, killThread)
+import GHC.IO (unsafePerformIO)
 
 type Board = Vector Int
 data Direction = UP | DOWN | LEFT | RIGHT deriving Eq
@@ -28,12 +32,15 @@ instance NFData Puzzle where
     rnf puzzle = puzzle `seq` ()
 
 initPuzzle :: [Int] -> Puzzle
-initPuzzle xs = Puzzle b d n z 0 Nothing
+initPuzzle xs = Puzzle b d dm z 0 Nothing
     where
         b = V.fromList xs
-        n = dimension b
-        d = totalDist b n
-        z = fromMaybe (error "Could not find zero tile") (V.elemIndex 0 b)
+        d = totalDist b dm
+        dm = dimension b
+        z = fromMaybe (error "Couldn't find zero tile") (V.elemIndex 0 b)
+
+dimension :: Board -> Int
+dimension = round . sqrt . fromIntegral . V.length
 
 matrix2array :: Int -> Int -> Int -> Int
 matrix2array n row col = n * row + col
@@ -41,22 +48,17 @@ matrix2array n row col = n * row + col
 array2matrix :: Int -> Int -> (Int, Int)
 array2matrix n i = (i `div` n, i `mod` n)
 
-dimension :: Board -> Int
-dimension = round . sqrt . fromIntegral . V.length
-
--- manhattan distance: vert + horiz lengths
 manhattan :: Int -> Int -> Int -> Int  -> Int
-manhattan v n i j = if v == 0 then 0 else rowDist + colDist
+manhattan v n i j = 
+    if v == 0 
+        then 0 
+        else rowDist + colDist
     where
         rowDist = abs (i - ((v-1) `div` n))
         colDist = abs (j - ((v-1) `mod` n))
 
 totalDist :: Board -> Int -> Int
--- KIMBO par here
--- totalDist b n = sum [manhattan (b ! matrix2array n i j) n i j | i <- [0..n-1], j <- [0..n-1]]
-totalDist b n = sum $ parMap rdeepseq (\(i, j) -> manhattan (b ! matrix2array n i j) n i j) indices
-  where
-    indices = [(i, j) | i <- [0..n-1], j <- [0..n-1]]
+totalDist b n = sum [manhattan (b ! matrix2array n i j) n i j | i <- [0..n-1], j <- [0..n-1]]
 
 swap :: Puzzle -> Int -> Int -> Puzzle
 swap p i j = p { board = b
@@ -72,10 +74,14 @@ swap p i j = p { board = b
 
 move :: Puzzle -> Direction -> Maybe Puzzle
 move p dir = case dir of
-    UP -> if i <= 0   then Nothing else Just $ swap p (i-1) j
-    DOWN -> if i >= n-1 then Nothing else Just $ swap p (i+1) j
-    LEFT  -> if j <= 0   then Nothing else Just $ swap p i (j-1)
-    RIGHT  -> if j >= n-1 then Nothing else Just $ swap p i (j+1)
+    UP -> if i > 0 
+        then Just $ swap p (i-1) j else Nothing
+    DOWN -> if i < n-1 
+        then Just $ swap p (i+1) j else Nothing
+    LEFT -> if j > 0
+        then Just $ swap p i (j-1) else Nothing
+    RIGHT -> if j < n-1 
+        then Just $ swap p i (j+1) else Nothing
     where
         (i, j) = array2matrix n (zero p)
         n = dim p
@@ -84,27 +90,58 @@ parMapMaybe :: NFData b => (a -> Maybe b) -> [a] -> [b]
 parMapMaybe f xs = runEval $ parList rdeepseq (mapMaybe f xs)
 
 neighbors :: Puzzle -> [Puzzle]
--- KIMBO par here
--- neighbors p = mapMaybe (move p) [UP, DOWN, LEFT, RIGHT]
-neighbors p = parMapMaybe (move p) [UP, DOWN, LEFT, RIGHT]
+neighbors p = mapMaybe (move p) [UP, DOWN, LEFT, RIGHT]
+-- neighbors p = parMapMaybe (move p) [UP, DOWN, LEFT, RIGHT]
 
-
--- try to implement pruning
-solve :: Puzzle -> Puzzle
-solve p = go (PQ.fromList [(dist p, p)])
+oldSolve :: Puzzle -> Puzzle
+oldSolve p = go (PQ.fromList [(dist p, p)])
     where
-        go fr = if dist puzzle == 0 
-                then puzzle 
-                else go fr2
+        go frontier = if dist puzzle == 0 
+                then puzzle
+                else go frontier2
             where
-                ((_, puzzle), fr1) = PQ.deleteFindMin fr
+                ((_, puzzle), frontier1) = PQ.deleteFindMin frontier
 
                 ns = case previous puzzle of
                     Nothing -> neighbors puzzle
                     Just n  -> filter (\x -> board x /= board n) (neighbors puzzle)
 
                 ps  = zip [moves q + dist q | q <- ns] ns
-                fr2 = foldr (uncurry PQ.insert) fr1 ps
+                frontier2 = foldr (uncurry PQ.insert) frontier1 ps
+
+solve :: Puzzle -> IO Puzzle
+solve p = do 
+    let k   = 5
+        psq = PQ.fromList [(dist p, p)]
+    
+    if PQ.size psq < k then do
+        goSolve psq
+    else do 
+        -- let length = PQ.size psq 
+        complete <- newEmptyMVar
+        -- inprog <- newMVar length
+        threads <- forM [uncurry PQ.singleton x| x <- PQ.toList psq] $ \ipsq -> forkIO $ do
+            -- unsafePerformIO(goSolve ipsq)
+            pSolved <- goSolve ipsq
+            void (tryPutMVar complete pSolved)
+        ret <- readMVar complete
+        mapM_ killThread threads
+        return ret
+
+goSolve :: PQ.MinPQueue Int Puzzle -> IO Puzzle
+goSolve frontier = if dist puzzle == 0 
+                   then return puzzle
+                   else goSolve frontier2
+  where
+    ((_, puzzle), frontier1) = PQ.deleteFindMin frontier
+
+    ns = case previous puzzle of
+      Nothing -> neighbors puzzle
+      Just n  -> filter (\x -> board x /= board n) (neighbors puzzle)
+
+    ps  = zip [moves q + dist q | q <- ns] ns
+    frontier2 = foldr (uncurry PQ.insert) frontier1 ps
+
 
 boards :: Puzzle -> [[Int]]
 boards p = map V.toList (reverse $ brds p)
@@ -113,8 +150,11 @@ boards p = map V.toList (reverse $ brds p)
             Nothing -> [board q]
             Just r  -> board q : brds r
 
-steps :: Puzzle -> Int
-steps p = length (boards p) - 1
+steps :: IO Puzzle -> IO Int
+steps p = do
+    pUnwrapped <- p
+    let ret = length (boards pUnwrapped) - 1
+    return ret
 
 toBoard :: String -> [Int]
 toBoard input = toIntBoard (words <$> (drop 1 . clearInput . lines $ input))
@@ -137,6 +177,11 @@ main = do
     -- print gameList
     -- print games
     -- print $ length games
+    -- let sols = map (oldSolve . initPuzzle) games
     let sols = map (solve . initPuzzle) games
     -- mapM_ (print . boards) sols
-    mapM_ (print . steps) sols
+    -- mapM_ (print . steps) sols
+    mapM_ (\sol -> do
+             numSteps <- steps sol
+             print numSteps
+          ) sols
