@@ -59,8 +59,6 @@ manhattan v n i j =
 
 totalDist :: Board -> Int -> Int
 totalDist b n = sum [manhattan (b ! matrix2array n i j) n i j | i <- [0..n-1], j <- [0..n-1]]
-  where
-    indices = [(i, j) | i <- [0..n-1], j <- [0..n-1]]
 
 swap :: Puzzle -> Int -> Int -> Puzzle
 swap p i j = p { board = b
@@ -119,26 +117,20 @@ solve p = do
     if PQ.size psq < k then do
         goSolve psq
     else do 
-        let length = PQ.size psq 
+        -- let length = PQ.size psq 
         complete <- newEmptyMVar
         -- inprog <- newMVar length
         threads <- forM [uncurry PQ.singleton x| x <- PQ.toList psq] $ \ipsq -> forkIO $ do
             -- unsafePerformIO(goSolve ipsq)
-            goSolve ipsq
-            void (tryPutMVar complete ipsq)
-            -- if unsafePerformIO(goSolve ipsq) -- solution found
-            --     then void (tryPutMVar complete ipsq) 
-            --     else (do m <- takeMVar inprog 
-            --              if m == 1 
-            --                     then void (tryPutMVar complete 0) 
-            --                     else putMVar inprog (m-1))
+            pSolved <- goSolve ipsq
+            void (tryPutMVar complete pSolved)
         ret <- readMVar complete
         mapM_ killThread threads
         return ret
 
 goSolve :: PQ.MinPQueue Int Puzzle -> IO Puzzle
 goSolve frontier = if dist puzzle == 0 
-                   then puzzle
+                   then return puzzle
                    else goSolve frontier2
   where
     ((_, puzzle), frontier1) = PQ.deleteFindMin frontier
@@ -158,8 +150,11 @@ boards p = map V.toList (reverse $ brds p)
             Nothing -> [board q]
             Just r  -> board q : brds r
 
-steps :: Puzzle -> Int
-steps p = length (boards p) - 1
+steps :: IO Puzzle -> IO Int
+steps p = do
+    pUnwrapped <- p
+    let ret = length (boards pUnwrapped) - 1
+    return ret
 
 toBoard :: String -> [Int]
 toBoard input = toIntBoard (words <$> (drop 1 . clearInput . lines $ input))
@@ -185,4 +180,8 @@ main = do
     -- let sols = map (oldSolve . initPuzzle) games
     let sols = map (solve . initPuzzle) games
     -- mapM_ (print . boards) sols
-    mapM_ (print . steps) sols
+    -- mapM_ (print . steps) sols
+    mapM_ (\sol -> do
+             numSteps <- steps sol
+             print numSteps
+          ) sols
