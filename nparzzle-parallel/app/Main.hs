@@ -44,7 +44,6 @@ matrix2array n row col = n * row + col
 array2matrix :: Int -> Int -> (Int, Int)
 array2matrix n i = (i `div` n, i `mod` n)
 
--- manhattan distance: vert + horiz lengths
 manhattan :: Int -> Int -> Int -> Int  -> Int
 manhattan v n i j = 
     if v == 0 
@@ -55,8 +54,6 @@ manhattan v n i j =
         colDist = abs (j - ((v-1) `mod` n))
 
 totalDist :: Board -> Int -> Int
--- KIMBO par here
--- totalDist b n = sum [manhattan (b ! matrix2array n i j) n i j | i <- [0..n-1], j <- [0..n-1]]
 totalDist b n = sum $ parMap rdeepseq (\(i, j) -> manhattan (b ! matrix2array n i j) n i j) indices
   where
     indices = [(i, j) | i <- [0..n-1], j <- [0..n-1]]
@@ -91,12 +88,8 @@ parMapMaybe :: NFData b => (a -> Maybe b) -> [a] -> [b]
 parMapMaybe f xs = runEval $ parList rdeepseq (mapMaybe f xs)
 
 neighbors :: Puzzle -> [Puzzle]
--- KIMBO par here
--- neighbors p = mapMaybe (move p) [UP, DOWN, LEFT, RIGHT]
 neighbors p = parMapMaybe (move p) [UP, DOWN, LEFT, RIGHT]
 
-
--- try to implement pruning
 solve :: Puzzle -> Puzzle
 solve p = go (PQ.fromList [(dist p, p)])
     where
@@ -114,11 +107,11 @@ solve p = go (PQ.fromList [(dist p, p)])
                 fr2 = foldr (uncurry PQ.insert) fr1 ps
 
 boards :: Puzzle -> [[Int]]
-boards p = map V.toList (reverse $ brds p)
+boards p = map V.toList (reverse $ backtrack p)
     where
-        brds q = case previous q of
+        backtrack q = case previous q of
             Nothing -> [board q]
-            Just r  -> board q : brds r
+            Just r  -> board q : backtrack r
 
 steps :: Puzzle -> Int
 steps p = length (boards p) - 1
