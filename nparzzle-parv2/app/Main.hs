@@ -89,7 +89,6 @@ parMapMaybe f xs = runEval $ parList rdeepseq (mapMaybe f xs)
 
 neighbors :: Puzzle -> [Puzzle]
 neighbors p = mapMaybe (move p) [UP, DOWN, LEFT, RIGHT]
--- neighbors p = parMapMaybe (move p) [UP, DOWN, LEFT, RIGHT]
 
 oldSolve :: Puzzle -> Puzzle
 oldSolve p = go (PQ.fromList [(dist p, p)])
@@ -109,10 +108,9 @@ oldSolve p = go (PQ.fromList [(dist p, p)])
 
 
 solve :: Puzzle -> IO Puzzle
-solve p = do
+solve p = do 
     let psq = PQ.fromList [(dist p, p)]
-    ret <- solvePSQ psq
-    return ret
+    solvePSQ psq
 
 solvePSQ :: PQ.MinPQueue Int Puzzle -> IO Puzzle
 solvePSQ psq = do 
@@ -127,13 +125,9 @@ solvePSQ psq = do
         let ps = zip [moves q + dist q | q <- ns] ns
         let frontier2 = foldr (uncurry PQ.insert) frontier1 ps
         solvePSQ frontier2
-        -- goSolve psq
     else do 
-        -- let length = PQ.size psq 
         complete <- newEmptyMVar
-        -- inprog <- newMVar length
         threads <- forM [uncurry PQ.singleton x| x <- PQ.toList psq] $ \ipsq -> forkIO $ do
-            -- unsafePerformIO(goSolve ipsq)
             pSolved <- goSolve ipsq
             void (tryPutMVar complete pSolved)
         ret <- readMVar complete
@@ -189,10 +183,7 @@ main = do
     -- print gameList
     -- print games
     -- print $ length games
-    -- let sols = map (oldSolve . initPuzzle) games
     let sols = map (solve . initPuzzle) games
-    -- mapM_ (print . boards) sols
-    -- mapM_ (print . steps) sols
     mapM_ (\sol -> do
              numSteps <- steps sol
              print numSteps

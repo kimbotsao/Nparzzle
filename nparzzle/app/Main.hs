@@ -101,6 +101,9 @@ boards p = map V.toList (reverse $ brds p)
             Nothing -> [board q]
             Just r  -> board q : brds r
 
+steps :: Puzzle -> Int
+steps p = length (boards p) - 1
+
 toBoard :: String -> [Int]
 toBoard input = toIntBoard (words <$> (drop 1 . clearInput . lines $ input))
 
@@ -123,7 +126,8 @@ main = do
     -- print games
     -- print $ length games
     let sols = map (solve . initPuzzle) games
-    mapM_ (print . boards) sols
+    -- mapM_ (print . boards) sols
+    mapM_ (print . steps) sols
     
 
 
