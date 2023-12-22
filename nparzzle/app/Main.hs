@@ -20,12 +20,15 @@ data Puzzle = Puzzle
     } deriving (Show, Eq, Ord)
 
 initPuzzle :: [Int] -> Puzzle
-initPuzzle xs = Puzzle b d n z 0 Nothing
+initPuzzle xs = Puzzle b d dm z 0 Nothing
     where
         b = V.fromList xs
-        n = dimension b
-        d = totalDist b n
-        z = fromMaybe (error "Could not find zero tile") (V.elemIndex 0 b)
+        d = totalDist b dm
+        dm = dimension b
+        z = fromMaybe (error "Couldn't find zero tile") (V.elemIndex 0 b)
+
+dimension :: Board -> Int
+dimension = round . sqrt . fromIntegral . V.length
 
 matrix2array :: Int -> Int -> Int -> Int
 matrix2array n row col = n * row + col
@@ -33,11 +36,11 @@ matrix2array n row col = n * row + col
 array2matrix :: Int -> Int -> (Int, Int)
 array2matrix n i = (i `div` n, i `mod` n)
 
-dimension :: Board -> Int
-dimension = round . sqrt . fromIntegral . V.length
-
 manhattan :: Int -> Int -> Int -> Int  -> Int
-manhattan v n i j = if v == 0 then 0 else rowDist + colDist
+manhattan v n i j = 
+    if v == 0 
+        then 0 
+        else rowDist + colDist
     where
         rowDist = abs (i - ((v-1) `div` n))
         colDist = abs (j - ((v-1) `mod` n))
@@ -47,22 +50,26 @@ totalDist b n = sum [manhattan (b ! matrix2array n i j) n i j | i <- [0..n-1], j
 
 swap :: Puzzle -> Int -> Int -> Puzzle
 swap p i j = p { board = b
-                 , dist = totalDist b n
+                 , dist = totalDist b dm
                  , zero = k
                  , moves = moves p + 1
                  , previous = Just p }
     where
-        k = matrix2array n i j
+        k = matrix2array dm i j
         b = prev // [(zero p, prev ! k), (k, 0)]
         prev = board p
-        n = dim p
+        dm = dim p
 
 move :: Puzzle -> Direction -> Maybe Puzzle
 move p dir = case dir of
-    UP -> if i <= 0   then Nothing else Just $ swap p (i-1) j
-    DOWN -> if i >= n-1 then Nothing else Just $ swap p (i+1) j
-    LEFT  -> if j <= 0   then Nothing else Just $ swap p i (j-1)
-    RIGHT  -> if j >= n-1 then Nothing else Just $ swap p i (j+1)
+    UP -> if i > 0 
+        then Just $ swap p (i-1) j else Nothing
+    DOWN -> if i < n-1 
+        then Just $ swap p (i+1) j else Nothing
+    LEFT -> if j > 0
+        then Just $ swap p i (j-1) else Nothing
+    RIGHT -> if j < n-1 
+        then Just $ swap p i (j+1) else Nothing
     where
         (i, j) = array2matrix n (zero p)
         n = dim p
