@@ -6,13 +6,11 @@ import qualified Data.PQueue.Prio.Min as PQ
 import qualified Data.Vector as V
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
-import Control.Monad ( forM, void )
+import Control.Monad (forM, void)
 import Control.Parallel.Strategies
-import Control.Parallel (par, pseq)
+-- import Control.Parallel (par, pseq)
 import Control.DeepSeq (NFData, rnf)
-import GHC.Conc (pseq)
-import Control.Concurrent ( newEmptyMVar, newMVar, forkIO, tryPutMVar, takeMVar, putMVar, readMVar, killThread)
-import GHC.IO (unsafePerformIO)
+import Control.Concurrent (newEmptyMVar, forkIO, tryPutMVar, readMVar, killThread)
 
 type Board = Vector Int
 data Direction = UP | DOWN | LEFT | RIGHT deriving Eq
@@ -109,13 +107,27 @@ oldSolve p = go (PQ.fromList [(dist p, p)])
                 ps  = zip [moves q + dist q | q <- ns] ns
                 frontier2 = foldr (uncurry PQ.insert) frontier1 ps
 
+
 solve :: Puzzle -> IO Puzzle
-solve p = do 
+solve p = do
+    let psq = PQ.fromList [(dist p, p)]
+    ret <- solvePSQ psq
+    return ret
+
+solvePSQ :: PQ.MinPQueue Int Puzzle -> IO Puzzle
+solvePSQ psq = do 
     let k   = 5
-        psq = PQ.fromList [(dist p, p)]
-    
     if PQ.size psq < k then do
-        goSolve psq
+        let ((_, puzzle), frontier1) = PQ.deleteFindMin psq
+
+        let ns = case previous puzzle of
+                Nothing -> neighbors puzzle
+                Just n  -> filter (\x -> board x /= board n) (neighbors puzzle)
+
+        let ps = zip [moves q + dist q | q <- ns] ns
+        let frontier2 = foldr (uncurry PQ.insert) frontier1 ps
+        solvePSQ frontier2
+        -- goSolve psq
     else do 
         -- let length = PQ.size psq 
         complete <- newEmptyMVar
